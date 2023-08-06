@@ -6,7 +6,7 @@
       <tbody>
         <tr><td>Текущее угловое ускорение: {{ rotationRateY?.toFixed(0) }} град./с</td></tr>
         <tr><td>Макс. зафиксированное: {{ maxRotationRateY?.toFixed(0) }} град./с</td></tr>
-        <tr><td>Или: <strong>{{ (maxRotationRateY * 0.1666666666667).toFixed(0) }} об./мин</strong></td></tr>
+        <tr><td>Или: <strong>{{ (maxRotationRateY * 0.167).toFixed(0) }} об./мин</strong></td></tr>
       </tbody>
     </table>
     <details>
@@ -48,7 +48,6 @@
 </template>
 
 <script setup>
-import KalmanFilter from 'kalmanjs';
 
 let rotationRateY = ref(0);
 let accelerationZ = ref(0);
@@ -57,15 +56,10 @@ let maxAccelerationZ = ref(0);
 let dropTime = ref(0);
 let startTime = 0;
 
-const dropThreshold = 0.01;
-
-const accelerationFilter = new KalmanFilter({ R: 0.01, Q: 3 });
-const rotationRateFilter = new KalmanFilter({ R: 0.01, Q: 3 });
-
 function deviceMotion() {
   window.addEventListener('devicemotion', (e) => {
-    rotationRateY.value = rotationRateFilter.filter(e.rotationRate.gamma);
-    accelerationZ.value = accelerationFilter.filter(e.acceleration.z);
+    rotationRateY.value = e.rotationRate.gamma;
+    accelerationZ.value = e.acceleration.z;
     maxRotationRateY.value = Math.max(rotationRateY.value, maxRotationRateY.value);
     maxAccelerationZ.value = Math.max(accelerationZ.value, maxAccelerationZ.value);
     dropTimeComp(e.acceleration.z);
@@ -73,9 +67,9 @@ function deviceMotion() {
 }
 
 function dropTimeComp(dropAccel) {
-  if (dropAccel > dropThreshold && !startTime) {
+  if (dropAccel > 0 && !startTime) {
     startTime = new Date();
-  } else if (dropAccel <= 0 && startTime) {
+  } else if (dropAccel < 0 && startTime) {
     const result = new Date() - startTime;
     if (result > dropTime.value) {
       dropTime.value = result;
@@ -91,4 +85,5 @@ const dropDistance = computed(() => {
 onMounted(() => {
   deviceMotion();
 });
+
 </script>
